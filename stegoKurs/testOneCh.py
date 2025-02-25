@@ -1,3 +1,4 @@
+import numpy as np
 from PIL import Image
 import qrcode
 
@@ -89,6 +90,61 @@ def bits_to_image(bits, size, output_path):
     img.save(output_path)
 
 
+def calculate_mse(image1_path, image2_path):
+    img1 = Image.open(image1_path).convert('RGB')
+    img2 = Image.open(image2_path).convert('RGB')
+    if img1.size != img2.size:
+        raise ValueError("Изображения должны иметь одинаковые размеры!")
+
+    width, height = img1.size
+
+
+    pixels1 = img1.load()
+    pixels2 = img2.load()
+
+    # Сумма квадратов разностей
+    sum_of_squares = 0.0
+
+    # Перебираем все пиксели
+    for y in range(height):
+        for x in range(width):
+            # Берём только синий канал (индекс 2)
+            b1 = pixels1[x, y][2]
+            b2 = pixels2[x, y][2]
+            # Добавляем квадрат разности к сумме
+            sum_of_squares += (b1 - b2) ** 2
+
+    # Подставляем в формулу MSE
+    mse = sum_of_squares / (width * height)
+    return mse
+
+def calculate_nmse(image1_path, image2_path):
+    img1 = Image.open(image1_path).convert('RGB')
+    width, height = img1.size
+    pixels1 = img1.load()
+
+    # Сумма квадратов значений синего канала
+    sum_sq = 0.0
+    for y in range(height):
+        for x in range(width):
+            b = pixels1[x, y][2]
+            sum_sq += b ** 2
+
+        # Средний квадрат значений синего канала
+        mean_sq = sum_sq / (width * height)
+
+        # Вычисляем MSE
+        mse = calculate_mse(image1_path, image2_path)
+
+        # Если mean_sq = 0 (все пиксели синего канала равны 0), NMSE становится бесконечностью
+        if mean_sq == 0:
+            nmse = float('inf')
+        else:
+            nmse = mse / mean_sq
+
+        return nmse
+
+
 # Пример использования:
 if __name__ == '__main__':
     # 1. Генерируем QR-код с нужными данными
@@ -113,3 +169,6 @@ if __name__ == '__main__':
     bits_to_image(extracted_bits, qr_size, recovered_qr_image)
 
     print("Процесс завершён. Проверьте файлы:", stego_image, recovered_qr_image)
+
+    print( "MSE:", calculate_mse(container_image, stego_image))
+    print("NMSE:", calculate_nmse(container_image, stego_image))
