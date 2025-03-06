@@ -1,32 +1,37 @@
 from PIL import Image
+import numpy as np
 
-image_path='stego.bmp'
-def get_rgb_matrix(image_path):
-    # Открываем изображение
-    image = Image.open(image_path)
+# Загрузка изображения
+image = Image.open('stego_block.bmp')
 
-    # Преобразуем изображение в режим RGB (если оно не в этом режиме)
-    image = image.convert('RGB')
+# Преобразование изображения в массив numpy
+image_array = np.array(image)
 
-    # Получаем размеры изображения
-    width, height = image.size
+# Выделение синего канала (третий канал в RGB)
+blue_channel = image_array[:, :, 2]
 
-    # Создаем пустую матрицу для хранения RGB значений
-    rgb_matrix = []
+# Размер изображения
+height, width = blue_channel.shape
+print(f"Размер изображения: {height}x{width}")
 
-    # Проходим по каждому пикселю изображения
-    for y in range(height):
-        row = []
-        for x in range(width):
-            # Получаем RGB значения пикселя
-            r, g, b = image.getpixel((x, y))
-            row.append((r, g, b))
-        rgb_matrix.append(row)
+# Количество значений в блоке
+block_size = 230
 
-    return rgb_matrix
-# Получаем матрицу RGB
-rgb_matrix = get_rgb_matrix(image_path)
+# Вычисление количества блоков
+num_blocks = (height * width) // block_size
+print(f"Количество блоков: {num_blocks}")
 
-# Выводим результат (например, первые 5 строк и 5 столбцов)
-for column in rgb_matrix[:100]:
-    print(column[:100])
+# Преобразование синего канала в одномерный массив
+blue_channel_flat = blue_channel.flatten()
+
+# Разделение на блоки по 230 значений
+blocks = np.array_split(blue_channel_flat[:num_blocks * block_size], num_blocks)
+
+# Сохранение блоков в текстовый файл
+with open('blue_channel_blocks_stego.txt', 'w') as file:
+    for block in blocks:
+        # Преобразуем блок в строку с разделителем пробелом
+        block_str = ' '.join(map(str, block))
+        file.write(block_str + '\n')
+
+print("Блоки успешно сохранены в файл 'blue_channel_blocks_stego.txt'.")
